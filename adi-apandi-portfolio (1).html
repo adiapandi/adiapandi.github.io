@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Adi Apandi — IT Infrastructure & Network Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080C10;
+    --surface: #0D1117;
+    --border: #1C2A38;
+    --cyan: #00D4FF;
+    --amber: #F5A623;
+    --green: #00FF88;
+    --text: #C9D8E8;
+    --muted: #4A6070;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-body: 'Barlow', sans-serif;
+    --font-display: 'Barlow Condensed', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* ── CANVAS BACKGROUND ── */
+  #grid-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    opacity: 0.35;
+  }
+
+  /* ── SCAN LINE OVERLAY ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,212,255,0.012) 2px,
+      rgba(0,212,255,0.012) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ── LAYOUT ── */
+  .wrapper {
+    position: relative;
+    z-index: 2;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(8,12,16,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  nav .inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--cyan);
+    letter-spacing: 0.05em;
+  }
+
+  .nav-logo span { color: var(--muted); }
+
+  .nav-links {
+    display: flex;
+    gap: 28px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--cyan); }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding-top: 56px;
+  }
+
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+    width: 100%;
+  }
+
+  .hero-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.2s forwards;
+  }
+
+  .hero-label::before {
+    content: '> ';
+    color: var(--amber);
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(52px, 7vw, 80px);
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -1px;
+    color: #fff;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.35s forwards;
+  }
+
+  h1 .accent { color: var(--cyan); }
+  h1 .last { color: var(--muted); }
+
+  .hero-role {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--amber);
+    letter-spacing: 0.15em;
+    margin-top: 18px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.5s forwards;
+  }
+
+  .hero-desc {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-top: 20px;
+    max-width: 420px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.65s forwards;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 14px;
+    margin-top: 36px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.8s forwards;
+  }
+
+  .btn-primary {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 12px 28px;
+    background: var(--cyan);
+    color: #000;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-primary:hover {
+    background: #fff;
+    transform: translateY(-2px);
+  }
+
+  .btn-ghost {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 12px 28px;
+    background: transparent;
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+    cursor: pointer;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-ghost:hover {
+    background: rgba(0,212,255,0.08);
+    transform: translateY(-2px);
+  }
+
+  .btn-cv {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 12px 22px;
+    background: transparent;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    cursor: pointer;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-cv::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--amber);
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 0;
+  }
+
+  .btn-cv:hover::before { transform: translateX(0); }
+
+  .btn-cv:hover {
+    color: #000;
+    transform: translateY(-2px);
+  }
+
+  .btn-cv-icon, .btn-cv span { position: relative; z-index: 1; }
+  .btn-cv:hover .btn-cv-icon { animation: bounce 0.4s ease; }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    40% { transform: translateY(3px); }
+  }
+
+  /* ── TERMINAL CARD ── */
+  .terminal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp 0.7s 0.5s forwards;
+    box-shadow: 0 0 60px rgba(0,212,255,0.06), inset 0 0 0 1px rgba(0,212,255,0.04);
+  }
+
+  .terminal-bar {
+    background: #111820;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #FF5F57; }
+  .dot-y { background: #FEBC2E; }
+  .dot-g { background: #28C840; }
+
+  .terminal-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 8px;
+    letter-spacing: 0.08em;
+  }
+
+  .terminal-body {
+    padding: 20px 22px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+
+  .t-prompt { color: var(--green); }
+  .t-cmd { color: #fff; }
+  .t-key { color: var(--cyan); }
+  .t-val { color: var(--amber); }
+  .t-comment { color: var(--muted); }
+  .t-tag { color: #C792EA; }
+
+  .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: var(--cyan);
+    animation: blink 1s step-end infinite;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 0;
+    margin: 80px 0;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+  }
+
+  .stat {
+    padding: 0 32px;
+    border-right: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .stat:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: var(--font-display);
+    font-size: 42px;
+    font-weight: 900;
+    color: var(--cyan);
+    line-height: 1;
+  }
+
+  .stat-unit {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--amber);
+  }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-top: 6px;
+  }
+
+  /* ── SECTIONS ── */
+  section { padding: 80px 0; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .section-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid rgba(245,166,35,0.3);
+    background: rgba(245,166,35,0.05);
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #fff;
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── SKILLS GRID ── */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .skill-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.25s, transform 0.2s;
+    cursor: default;
+  }
+
+  .skill-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--cyan);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.3s;
+  }
+
+  .skill-card:hover { border-color: rgba(0,212,255,0.3); transform: translateY(-3px); }
+  .skill-card:hover::before { transform: scaleY(1); }
+
+  .skill-icon {
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+
+  .skill-name {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .skill-list {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+
+  .skill-list span {
+    display: block;
+  }
+
+  .skill-list span::before {
+    content: '— ';
+    color: var(--cyan);
+  }
+
+  /* ── CERTIFICATIONS ── */
+  .cert-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .cert-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .cert-card:hover { border-color: rgba(0,212,255,0.25); }
+
+  .cert-badge {
+    width: 40px;
+    height: 40px;
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .cert-name {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: #E0EAF4;
+  }
+
+  .cert-issuer {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── CONTACT ── */
+  #contact {
+    padding-bottom: 100px;
+  }
+
+  .contact-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 48px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 40px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .contact-box::after {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .contact-headline {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+
+  .contact-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .contact-links {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .contact-link {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--cyan);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: color 0.2s;
+  }
+
+  .contact-link:hover { color: #fff; }
+
+  .contact-link-icon {
+    width: 28px;
+    height: 28px;
+    border: 1px solid rgba(0,212,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 20px 0;
+  }
+
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-copy {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .footer-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green);
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 40px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .stat { padding: 16px; border-right: none; border-bottom: 1px solid var(--border); }
+    .skills-grid { grid-template-columns: 1fr 1fr; }
+    .cert-grid { grid-template-columns: 1fr; }
+    .contact-box { grid-template-columns: 1fr; }
+    nav .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="grid-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="inner">
+    <div class="nav-logo">ADI<span>://</span>APANDI</div>
+    <ul class="nav-links">
+      <li><a href="#about">About</a></li>
+      <li><a href="#skills">Skills</a></li>
+      <li><a href="#certifications">Certs</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="about">
+  <div class="wrapper">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-label">IT Infrastructure & Operations Specialist</div>
+        <h1>ADI<br><span class="accent">APANDI</span></h1>
+        <div class="hero-role">// Network Management & Systems Engineering</div>
+        <p class="hero-desc">
+          Building resilient infrastructure that keeps organisations connected, secure, and running at peak performance. From network architecture to day-to-day operations — I make the backbone work.
+        </p>
+        <div class="hero-cta">
+          <a href="#contact" class="btn-primary">Get in Touch</a>
+          <a href="#skills" class="btn-ghost">View Skills</a>
+          <a href="adi-apandi-cv.pdf" download="Adi_Apandi_CV.pdf" class="btn-cv" id="cv-btn" title="Replace adi-apandi-cv.pdf with your actual CV file">
+            <span class="btn-cv-icon">⬇</span> Download CV
+          </a>
+        </div>
+      </div>
+
+      <!-- Terminal -->
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="dot dot-r"></div>
+          <div class="dot dot-y"></div>
+          <div class="dot dot-g"></div>
+          <span class="terminal-title">adi@infra ~ sys-info</span>
+        </div>
+        <div class="terminal-body">
+          <div><span class="t-prompt">$ </span><span class="t-cmd">whoami --verbose</span></div>
+          <div style="margin-top:10px">
+            <span class="t-key">name</span>       <span class="t-val">Adi Apandi</span><br>
+            <span class="t-key">role</span>       <span class="t-val">IT Infrastructure & Operations Specialist</span><br>
+            <span class="t-key">location</span>   <span class="t-val">Jakarta, ID</span><br>
+            <span class="t-key">focus</span>      <span class="t-val">Network · Systems · Security</span>
+          </div>
+          <div style="margin-top:14px"><span class="t-prompt">$ </span><span class="t-cmd">ping --status</span></div>
+          <div style="margin-top:10px">
+            <span class="t-comment"># ICMP sequence: 1 ttl=64</span><br>
+            <span class="t-tag">STATUS</span>     <span class="t-val" style="color:var(--green)">AVAILABLE</span><br>
+            <span class="t-tag">UPTIME</span>     <span class="t-val">99.9%</span><br>
+            <span class="t-tag">MODE</span>       <span class="t-val">Open to opportunities</span>
+          </div>
+          <div style="margin-top:14px"><span class="t-prompt">$ </span><span class="cursor"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="wrapper">
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="stat-num">5<span class="stat-unit">+</span></div>
+        <div class="stat-label">Years Experience</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">99<span class="stat-unit">%</span></div>
+        <div class="stat-label">Network Uptime</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">50<span class="stat-unit">+</span></div>
+        <div class="stat-label">Projects Delivered</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">24<span class="stat-unit">/7</span></div>
+        <div class="stat-label">Systems Monitoring</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SKILLS -->
+<section id="skills">
+  <div class="wrapper">
+    <div class="section-header">
+      <span class="section-tag">02 // Skills</span>
+      <div class="section-title">Technical Stack</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="skills-grid">
+      <div class="skill-card">
+        <div class="skill-icon">🌐</div>
+        <div class="skill-name">Network Engineering</div>
+        <div class="skill-list">
+          <span>Routing & Switching</span>
+          <span>Cisco / MikroTik / Juniper</span>
+          <span>BGP, OSPF, VLANs</span>
+          <span>SD-WAN & MPLS</span>
+        </div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-icon">🖥️</div>
+        <div class="skill-name">Server & Systems</div>
+        <div class="skill-list">
+          <span>Windows Server / Linux</span>
+          <span>VMware / Hyper-V / Proxmox</span>
+          <span>Active Directory</span>
+        </div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-icon">🔒</div>
+        <div class="skill-name">Security</div>
+        <div class="skill-list">
+          <span>Firewall</span>
+          <span>VPN Configuration</span>
+          <span>Network Hardening</span>
+          <span>Vulnerability Assessment</span>
+        </div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-icon">📡</div>
+        <div class="skill-name">Monitoring & Ops</div>
+        <div class="skill-list">
+          <span>Zabbix / Nagios / PRTG</span>
+          <span>SNMP & Syslog</span>
+          <span>NOC Operations</span>
+          <span>Incident Response</span>
+        </div>
+      </div>
+      <div class="skill-card">
+        <div class="skill-icon">⚙️</div>
+        <div class="skill-name">Automation</div>
+        <div class="skill-list">
+          <span>Bash & PowerShell</span>
+          <span>Ansible (Basics)</span>
+          <span>Python Scripting</span>
+          <span>Network Automation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CERTIFICATIONS -->
+<section id="certifications">
+  <div class="wrapper">
+    <div class="section-header">
+      <span class="section-tag">03 // Certs</span>
+      <div class="section-title">Certifications</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="cert-grid">
+      <div class="cert-card">
+        <div class="cert-badge">🎯</div>
+        <div>
+          <div class="cert-name">Cisco CCNA</div>
+          <div class="cert-issuer">Cisco Systems · Routing & Switching</div>
+        </div>
+      </div>
+      <div class="cert-card">
+        <div class="cert-badge">🔷</div>
+        <div>
+          <div class="cert-name">CompTIA Network+</div>
+          <div class="cert-issuer">CompTIA · Network Infrastructure</div>
+        </div>
+      </div>
+      <div class="cert-card">
+        <div class="cert-badge">☁️</div>
+        <div>
+          <div class="cert-name">AWS Cloud Practitioner</div>
+          <div class="cert-issuer">Amazon Web Services · Cloud Fundamentals</div>
+        </div>
+      </div>
+      <div class="cert-card">
+        <div class="cert-badge">🛡️</div>
+        <div>
+          <div class="cert-name">CompTIA Security+</div>
+          <div class="cert-issuer">CompTIA · Cybersecurity Foundations</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px; font-family:var(--font-mono); font-size:11px; color:var(--muted);">
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="wrapper">
+    <div class="section-header">
+      <span class="section-tag">04 // Contact</span>
+      <div class="section-title">Get In Touch</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="contact-box">
+      <div>
+        <div class="contact-headline">Let's Build Something Solid.</div>
+        <p class="contact-sub">
+          Looking for an IT infrastructure specialist to strengthen your network,<br>
+          optimise your systems, or lead your next infrastructure project?<br>
+          I'm open to full-time roles and consulting opportunities.
+        </p>
+      </div>
+      <div class="contact-links">
+        <a href="/cdn-cgi/l/email-protection#8aebeee3caeff2ebe7fae6efa4e9e5e7" class="contact-link">
+          <span class="contact-link-icon">✉</span>
+          <span class="__cf_email__" data-cfemail="5f3e3b361f3a273e322f333a713c3032">[adiapandi88@gmail.com]</span>
+        </a>
+        <a href="https://linkedin.com" target="_blank" class="contact-link">
+          <span class="contact-link-icon">in</span>
+          linkedin.com/in/adiapandi
+        </a>
+        <a href="https://wa.me/6281519575942" target="_blank" class="contact-link">
+          <span class="contact-link-icon">📱</span>
+          WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrapper">
+    <div class="footer-inner">
+      <div class="footer-copy">© 2026 Adi Apandi — All systems operational.</div>
+      <div class="footer-status">
+        <div class="status-dot"></div>
+        ONLINE
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── ANIMATED NETWORK GRID CANVAS ──
+const canvas = document.getElementById('grid-canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H, nodes = [], animId;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+function initNodes() {
+  nodes = [];
+  const count = Math.floor((W * H) / 18000);
+  for (let i = 0; i < count; i++) {
+    nodes.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 2 + 1,
+    });
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Update positions
+  nodes.forEach(n => {
+    n.x += n.vx;
+    n.y += n.vy;
+    if (n.x < 0 || n.x > W) n.vx *= -1;
+    if (n.y < 0 || n.y > H) n.vy *= -1;
+  });
+
+  // Draw connections
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 140) {
+        const alpha = (1 - dist / 140) * 0.4;
+        ctx.strokeStyle = `rgba(0, 212, 255, ${alpha})`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Draw nodes
+  nodes.forEach(n => {
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 212, 255, 0.5)';
+    ctx.fill();
+  });
+
+  animId = requestAnimationFrame(draw);
+}
+
+window.addEventListener('resize', () => {
+  resize();
+  initNodes();
+});
+
+resize();
+initNodes();
+draw();
+
+// ── SMOOTH SCROLL ──
+document.qu
